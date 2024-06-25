@@ -16,10 +16,17 @@ typedef enum {
 typedef struct {
     float *data;
     int *shape;
+    int *strides;
     int ndim;
     size_t size;
     size_t itemsize;
 } ArrayType;
+
+// Define a type for shape information
+typedef struct {
+    int *shape;
+    int ndim;
+} ShapeInfo;
 
 // Function prototypes for array operations
 
@@ -59,5 +66,25 @@ ArrayError add_arrays(ArrayType *result, const ArrayType *a, const ArrayType *b)
  * @return Error code indicating success or failure.
  */
 ArrayError multiply_arrays(ArrayType *result, const ArrayType *a, const ArrayType *b);
+
+/**
+ * Compares the shapes of two arrays and determines the broadcast shape.
+ * 
+ * @param a Pointer to the first array.
+ * @param b Pointer to the second array.
+ * @return Pointer to a ShapeInfo struct containing the broadcast shape or NULL if the shapes are not compatible.
+ */
+ShapeInfo* compare_shapes(const ArrayType *a, const ArrayType *b);
+
+/**
+ * Calculates the linear index from multidimensional indices.
+ * 
+ * @param indices Array of indices.
+ * @param shape Array of shape dimensions.
+ * @param strides Array of strides.
+ * @param ndim Number of dimensions.
+ * @return Linear index.
+ */
+size_t calculate_index(const int *indices, const int *shape, const int *strides, int ndim);
 
 #endif // ARRAY_H

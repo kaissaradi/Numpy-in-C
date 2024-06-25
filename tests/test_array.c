@@ -49,13 +49,14 @@ void test_create_array() {
 
 // Function to test array addition
 void test_add_arrays() {
-    int shape[] = {2, 3};
+    int shape_a[] = {2, 1};
+    int shape_b[] = {1, 3};
     ArrayError error;
     char details[256];
 
-    ArrayType *a = create_array(shape, 2, &error);
-    ArrayType *b = create_array(shape, 2, &error);
-    ArrayType *result = create_array(shape, 2, &error);
+    ArrayType *a = create_array(shape_a, 2, &error);
+    ArrayType *b = create_array(shape_b, 2, &error);
+    ArrayType *result = create_array(shape_a, 2, &error);
     int passed = a != NULL && b != NULL && result != NULL && error == ARRAY_SUCCESS;
 
     if (!passed) {
@@ -65,16 +66,29 @@ void test_add_arrays() {
 
     // Initialize arrays
     for (size_t i = 0; i < a->size; i++) {
-        a->data[i] = (float)i;
-        b->data[i] = (float)(i * 2);
+        a->data[i] = (float)i + 1;  // Initialize 'a' with [1, 2]
+    }
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = (float)(i + 1) * 2;  // Initialize 'b' with [2, 4, 6]
     }
 
     // Perform addition
     error = add_arrays(result, a, b);
     passed = (error == ARRAY_SUCCESS);
-    for (size_t i = 0; i < result->size; i++) {
-        passed &= (result->data[i] == a->data[i] + b->data[i]);
+
+    // Manually broadcast 'b' to match the shape of 'a'
+    ArrayType *b_broadcasted = create_array(shape_a, 2, &error);
+    for (size_t i = 0; i < b_broadcasted->size; i++) {
+        b_broadcasted->data[i] = b->data[i % b->size];
     }
+
+    // Compare result with expected values
+    for (size_t i = 0; i < result->size; i++) {
+        passed &= (result->data[i] == a->data[i] + b_broadcasted->data[i]);
+    }
+
+    free_array(b_broadcasted);
+
     snprintf(details, sizeof(details), "Addition result array - Size: %zu", result->size);
     print_test_result("test_add_arrays", passed, details);
 
@@ -109,13 +123,14 @@ void test_add_invalid_arrays() {
 
 // Function to test array multiplication
 void test_multiply_arrays() {
-    int shape[] = {2, 3};
+    int shape_a[] = {2, 1};
+    int shape_b[] = {1, 3};
     ArrayError error;
     char details[256];
 
-    ArrayType *a = create_array(shape, 2, &error);
-    ArrayType *b = create_array(shape, 2, &error);
-    ArrayType *result = create_array(shape, 2, &error);
+    ArrayType *a = create_array(shape_a, 2, &error);
+    ArrayType *b = create_array(shape_b, 2, &error);
+    ArrayType *result = create_array(shape_a, 2, &error);
     int passed = a != NULL && b != NULL && result != NULL && error == ARRAY_SUCCESS;
 
     if (!passed) {
@@ -125,16 +140,29 @@ void test_multiply_arrays() {
 
     // Initialize arrays
     for (size_t i = 0; i < a->size; i++) {
-        a->data[i] = (float)i;
-        b->data[i] = (float)(i + 1);
+        a->data[i] = (float)i + 1;  // Initialize 'a' with [1, 2]
+    }
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = (float)(i + 1) * 2;  // Initialize 'b' with [2, 4, 6]
     }
 
     // Perform multiplication
     error = multiply_arrays(result, a, b);
     passed = (error == ARRAY_SUCCESS);
-    for (size_t i = 0; i < result->size; i++) {
-        passed &= (result->data[i] == a->data[i] * b->data[i]);
+
+    // Manually broadcast 'b' to match the shape of 'a'
+    ArrayType *b_broadcasted = create_array(shape_a, 2, &error);
+    for (size_t i = 0; i < b_broadcasted->size; i++) {
+        b_broadcasted->data[i] = b->data[i % b->size];
     }
+
+    // Compare result with expected values
+    for (size_t i = 0; i < result->size; i++) {
+        passed &= (result->data[i] == a->data[i] * b_broadcasted->data[i]);
+    }
+
+    free_array(b_broadcasted);
+
     snprintf(details, sizeof(details), "Multiplication result array - Size: %zu", result->size);
     print_test_result("test_multiply_arrays", passed, details);
 
@@ -214,6 +242,151 @@ void test_memory_pool_exceed() {
     destroy_memory_pool(pool);
 }
 
+void test_broadcast_simple() {
+    int shape_a[] = {2, 1};
+    int shape_b[] = {1, 3};
+    ArrayError error;
+    char details[256];
+
+    ArrayType *a = create_array(shape_a, 2, &error);
+    ArrayType *b = create_array(shape_b, 2, &error);
+    ArrayType *result = create_array(shape_b, 2, &error);
+    int passed = a != NULL && b != NULL && result != NULL && error == ARRAY_SUCCESS;
+
+    if (!passed) {
+        printf("Error creating arrays for simple broadcast: %d\n", error);
+        return;
+    }
+
+    // Initialize arrays
+    for (size_t i = 0; i < a->size; i++) {
+        a->data[i] = (float)(i + 1);  // Initialize 'a' with [1, 2]
+    }
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = (float)(i + 1) * 2;  // Initialize 'b' with [2, 4, 6]
+    }
+
+    // Perform multiplication
+    error = multiply_arrays(result, a, b);
+    passed = (error == ARRAY_SUCCESS);
+
+    // Manually broadcast 'b' to match the shape of 'a'
+    ArrayType *b_broadcasted = create_array(shape_a, 2, &error);
+    for (size_t i = 0; i < b_broadcasted->size; i++) {
+        b_broadcasted->data[i] = b->data[i % b->size];
+    }
+
+    // Compare result with expected values
+    for (size_t i = 0; i < result->size; i++) {
+        passed &= (result->data[i] == a->data[i] * b_broadcasted->data[i]);
+    }
+
+    free_array(b_broadcasted);
+
+    snprintf(details, sizeof(details), "Simple broadcast result array - Size: %zu", result->size);
+    print_test_result("test_broadcast_simple", passed, details);
+
+    free_array(a);
+    free_array(b);
+    free_array(result);
+}
+
+void test_broadcast_different_dimensions() {
+    int shape_a[] = {3};
+    int shape_b[] = {2, 3};
+    ArrayError error;
+    char details[256];
+
+    ArrayType *a = create_array(shape_a, 1, &error);
+    ArrayType *b = create_array(shape_b, 2, &error);
+    ArrayType *result = create_array(shape_b, 2, &error);
+    int passed = a != NULL && b != NULL && result != NULL && error == ARRAY_SUCCESS;
+
+    if (!passed) {
+        printf("Error creating arrays for different dimensions broadcast: %d\n", error);
+        return;
+    }
+
+    // Initialize arrays
+    for (size_t i = 0; i < a->size; i++) {
+        a->data[i] = (float)(i + 1);  // Initialize 'a' with [1, 2, 3]
+    }
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = (float)(i + 1);  // Initialize 'b' with [1, 2, 3, 4, 5, 6]
+    }
+
+    // Perform addition
+    error = add_arrays(result, a, b);
+    passed = (error == ARRAY_SUCCESS);
+
+    // Manually broadcast 'a' to match the shape of 'b'
+    ArrayType *a_broadcasted = create_array(shape_b, 2, &error);
+    for (size_t i = 0; i < a_broadcasted->size; i++) {
+        a_broadcasted->data[i] = a->data[i % a->size];
+    }
+
+    // Compare result with expected values
+    for (size_t i = 0; i < result->size; i++) {
+        passed &= (result->data[i] == a_broadcasted->data[i] + b->data[i]);
+    }
+
+    free_array(a_broadcasted);
+
+    snprintf(details, sizeof(details), "Different dimensions broadcast result array - Size: %zu", result->size);
+    print_test_result("test_broadcast_different_dimensions", passed, details);
+
+    free_array(a);
+    free_array(b);
+    free_array(result);
+}
+
+void test_broadcast_scalar() {
+    int shape_a[] = {};
+    int shape_b[] = {2, 3};
+    ArrayError error;
+    char details[256];
+
+    ArrayType *a = create_array(shape_a, 0, &error);
+    ArrayType *b = create_array(shape_b, 2, &error);
+    ArrayType *result = create_array(shape_b, 2, &error);
+    int passed = a != NULL && b != NULL && result != NULL && error == ARRAY_SUCCESS;
+
+    if (!passed) {
+        printf("Error creating arrays for scalar broadcast: %d\n", error);
+        return;
+    }
+
+    // Initialize arrays
+    a->data[0] = 2.0;  // Initialize 'a' as scalar [2]
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = (float)(i + 1);  // Initialize 'b' with [1, 2, 3, 4, 5, 6]
+    }
+
+    // Perform multiplication
+    error = multiply_arrays(result, a, b);
+    passed = (error == ARRAY_SUCCESS);
+
+    // Manually broadcast 'a' to match the shape of 'b'
+    ArrayType *a_broadcasted = create_array(shape_b, 2, &error);
+    for (size_t i = 0; i < a_broadcasted->size; i++) {
+        a_broadcasted->data[i] = a->data[0];
+    }
+
+    // Compare result with expected values
+    for (size_t i = 0; i < result->size; i++) {
+        passed &= (result->data[i] == a_broadcasted->data[i] * b->data[i]);
+    }
+
+    free_array(a_broadcasted);
+
+    snprintf(details, sizeof(details), "Scalar broadcast result array - Size: %zu", result->size);
+    print_test_result("test_broadcast_scalar", passed, details);
+
+    free_array(a);
+    free_array(b);
+    free_array(result);
+}
+
 // Main function to run all tests
 int main() {
     test_create_array();
@@ -223,5 +396,8 @@ int main() {
     test_multiply_invalid_arrays();
     test_memory_pool();
     test_memory_pool_exceed();
+    test_broadcast_simple();
+    test_broadcast_different_dimensions();
+    test_broadcast_scalar();
     return 0;
 }
