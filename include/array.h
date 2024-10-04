@@ -55,7 +55,8 @@ void free_array(ArrayType *arr);
  * @param b Pointer to the second array.
  * @return Error code indicating success or failure.
  */
-ArrayError add_arrays(ArrayType *result, const ArrayType *a, const ArrayType *b);
+ArrayError add_arrays(ArrayType **result, const ArrayType *a, const ArrayType *b);
+
 
 /**
  * Multiplies two arrays element-wise and stores the result in a third array.
@@ -65,7 +66,7 @@ ArrayError add_arrays(ArrayType *result, const ArrayType *a, const ArrayType *b)
  * @param b Pointer to the second array.
  * @return Error code indicating success or failure.
  */
-ArrayError multiply_arrays(ArrayType *result, const ArrayType *a, const ArrayType *b);
+ArrayError multiply_arrays(ArrayType **result, const ArrayType *a, const ArrayType *b);
 
 /**
  * Compares the shapes of two arrays and determines the broadcast shape.

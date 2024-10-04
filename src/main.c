@@ -20,7 +20,7 @@ static void print_array(const ArrayType *arr);
 static int initialize_array(ArrayType *arr, float (*init_func)(size_t, size_t, const ArrayType *));
 static float init_func_a(size_t i, size_t j, const ArrayType *arr);
 static float init_func_b(size_t i, size_t j, const ArrayType *arr);
-static int perform_operation(ArrayType *result, const ArrayType *a, const ArrayType *b, ArrayOperation op);
+static int perform_operation(ArrayType **result, const ArrayType *a, const ArrayType *b, ArrayOperation op);
 static void cleanup(MemoryPoolType *pool, ArrayType *arrays[], size_t array_count);
 static void handle_error(const char *message, MemoryPoolType *pool, ArrayType *arrays[], size_t array_count);
 
@@ -33,14 +33,14 @@ int main(void) {
     printf("==================================================\n");
     printf(" Multidimensional Array Operations in C\n");
     printf("==================================================\n");
-    
+
     // Calculate required memory
     size_t array_size = ARRAY_ROWS * ARRAY_COLS * sizeof(float);
     size_t pool_size = sizeof(ArrayType) * array_count + array_size * array_count;
 
     printf("--------------------------------------------------\n");
     printf("Creating memory pool of size %zu bytes...\n", pool_size);
-    
+
     // Create memory pool
     if (!(memory_pool = create_memory_pool(pool_size))) {
         handle_error("Failed to create memory pool", NULL, NULL, 0);
@@ -50,103 +50,72 @@ int main(void) {
     printf("Memory pool created successfully.\n");
     printf("--------------------------------------------------\n");
 
-    // Allocate and initialize arrays
-    for (size_t i = 0; i < array_count; ++i) {
-        printf("Allocating and initializing array %zu...\n", i);
-        if (!(arrays[i] = allocate_from_pool(memory_pool, sizeof(ArrayType)))) {
-            handle_error("Failed to allocate array structure", memory_pool, arrays, i);
+    // Allocate and initialize arrays a and b
+    for (int i = 0; i < 2; ++i) {
+        arrays[i] = create_array(shape, ARRAY_DIMS, NULL);
+        if (!arrays[i]) {
+            handle_error("Failed to allocate arrays", memory_pool, arrays, array_count);
             return EXIT_FAILURE;
         }
-        if (!(arrays[i]->data = allocate_from_pool(memory_pool, array_size))) {
-            handle_error("Failed to allocate array data", memory_pool, arrays, i + 1);
-            return EXIT_FAILURE;
-        }
-        arrays[i]->ndim = ARRAY_DIMS;
-        arrays[i]->shape = (int *)shape;  // Safe as shape is const and outlives arrays
-        arrays[i]->size = ARRAY_ROWS * ARRAY_COLS;
-        arrays[i]->itemsize = sizeof(float);
-        printf("Array %zu allocated and initialized successfully.\n", i);
     }
 
-    printf("Arrays allocated and initialized successfully.\n");
-    printf("--------------------------------------------------\n");
-
-    // Initialize arrays with custom functions
-    printf("Initializing arrays with custom functions...\n");
-    if (initialize_array(arrays[0], init_func_a) || initialize_array(arrays[1], init_func_b)) {
-        handle_error("Failed to initialize arrays", memory_pool, arrays, array_count);
+    // Initialize array a with custom values
+    if (initialize_array(arrays[0], init_func_a) != 0) {
+        handle_error("Failed to initialize array a", memory_pool, arrays, array_count);
         return EXIT_FAILURE;
     }
 
-    printf("Arrays initialized successfully.\n");
-    printf("--------------------------------------------------\n");
+    // Initialize array b with custom values
+    if (initialize_array(arrays[1], init_func_b) != 0) {
+        handle_error("Failed to initialize array b", memory_pool, arrays, array_count);
+        return EXIT_FAILURE;
+    }
 
-    // Print initial arrays
-    printf("Array A:\n");
+    // Print arrays before addition
+    printf("Array a before addition:\n");
     print_array(arrays[0]);
-    printf("Array B:\n");
+    printf("Array b before addition:\n");
     print_array(arrays[1]);
-    printf("--------------------------------------------------\n");
 
-    // Perform addition
-    printf("Performing array addition...\n");
-    if (perform_operation(arrays[2], arrays[0], arrays[1], OPERATION_ADD)) {
-        handle_error("Failed to perform array addition", memory_pool, arrays, array_count);
+    // Perform addition operation
+    if (perform_operation(&arrays[2], arrays[0], arrays[1], OPERATION_ADD) != 0) {
+        handle_error("Addition operation failed", memory_pool, arrays, array_count);
         return EXIT_FAILURE;
     }
 
-    printf("Array addition performed successfully.\n");
-    printf("--------------------------------------------------\n");
 
-    // Print result of addition
-    printf("Result of A + B:\n");
+    printf("Addition result:\n");
     print_array(arrays[2]);
-    printf("--------------------------------------------------\n");
 
-    // Perform multiplication
-    printf("Performing array multiplication...\n");
-    if (perform_operation(arrays[2], arrays[0], arrays[1], OPERATION_MULTIPLY)) {
-        handle_error("Failed to perform array multiplication", memory_pool, arrays, array_count);
+    // Perform multiplication operation
+    free_array(arrays[2]);
+    arrays[2] = NULL;
+
+    if (perform_operation(&arrays[2], arrays[0], arrays[1], OPERATION_MULTIPLY) != 0) {
+        handle_error("Multiplication operation failed", memory_pool, arrays, array_count);
         return EXIT_FAILURE;
     }
 
-    printf("Array multiplication performed successfully.\n");
-    printf("--------------------------------------------------\n");
-
-    // Print result of multiplication
-    printf("Result of A * B:\n");
+    printf("Multiplication result:\n");
     print_array(arrays[2]);
-    printf("--------------------------------------------------\n");
 
     // Clean up
-    printf("Cleaning up...\n");
     cleanup(memory_pool, arrays, array_count);
-    printf("Cleanup completed successfully.\n");
-
-    printf("==================================================\n");
-    printf(" Program completed successfully.\n");
-    printf("==================================================\n");
-
-    return EXIT_SUCCESS;
+    return 0;
 }
 
-// Print the contents of an array
+// Function to print an array
 static void print_array(const ArrayType *arr) {
-    if (!arr || !arr->data) {
-        fprintf(stderr, "Invalid array\n");
-        return;
-    }
-
+    if (!arr || !arr->data) return;
     for (int i = 0; i < arr->shape[0]; ++i) {
         for (int j = 0; j < arr->shape[1]; ++j) {
-            printf("%8.2f ", arr->data[i * arr->shape[1] + j]);
+            printf("%f ", arr->data[i * arr->shape[1] + j]);
         }
         printf("\n");
     }
-    printf("\n");
 }
 
-// Initialize an array using a custom function
+// Function to initialize an array using a custom function
 static int initialize_array(ArrayType *arr, float (*init_func)(size_t, size_t, const ArrayType *)) {
     if (!arr || !arr->data || !init_func) return -1;
 
@@ -169,7 +138,7 @@ static float init_func_b(size_t i, size_t j, const ArrayType *arr) {
 }
 
 // Perform an operation (addition or multiplication) on two arrays
-static int perform_operation(ArrayType *result, const ArrayType *a, const ArrayType *b, ArrayOperation op) {
+static int perform_operation(ArrayType **result, const ArrayType *a, const ArrayType *b, ArrayOperation op) {
     ArrayError error;
     switch (op) {
         case OPERATION_ADD:
@@ -196,6 +165,11 @@ static void cleanup(MemoryPoolType *pool, ArrayType *arrays[], size_t array_coun
         destroy_memory_pool(pool);
     }
     if (arrays) {
+        for (size_t i = 0; i < array_count; ++i) {
+            if (arrays[i]) {
+                free_array(arrays[i]);
+            }
+        }
         memset(arrays, 0, array_count * sizeof(ArrayType*));
     }
 }

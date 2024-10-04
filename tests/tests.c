@@ -47,28 +47,9 @@ void test_add_arrays() {
         b->data[i] = (float)(i + 1) * 2;  // Initialize 'b' with [2, 4, 6]
     }
 
-    // Debug prints
-    printf("Array a:\n");
-    for (size_t i = 0; i < a->size; i++) {
-        printf("%f ", a->data[i]);
-    }
-    printf("\n");
-
-    printf("Array b:\n");
-    for (size_t i = 0; i < b->size; i++) {
-        printf("%f ", b->data[i]);
-    }
-    printf("\n");
-
     // Perform addition
     error = add_arrays(&result, a, b);
     passed = (error == ARRAY_SUCCESS);
-
-    printf("Result array:\n");
-    for (size_t i = 0; i < result->size; i++) {
-        printf("%f ", result->data[i]);
-    }
-    printf("\n");
 
     // Manually broadcast 'b' to match the shape of 'a'
     ArrayType *b_broadcasted = create_array(shape_a, 2, &error);
@@ -76,11 +57,9 @@ void test_add_arrays() {
         b_broadcasted->data[i] = b->data[i % b->size];
     }
 
-    // Compare result with expected values and print differences
+    // Compare result with expected values
     for (size_t i = 0; i < result->size; i++) {
-        float expected = a->data[i] + b_broadcasted->data[i];
-        printf("Index %zu: Expected %f, Got %f\n", i, expected, result->data[i]);
-        passed &= (result->data[i] == expected);
+        passed &= (result->data[i] == a->data[i] + b_broadcasted->data[i]);
     }
 
     free_array(b_broadcasted);
@@ -166,28 +145,9 @@ void test_broadcast_simple() {
         b->data[i] = (float)(i + 1);  // Initialize 'b' with [1, 2, 3, 4, 5, 6]
     }
 
-    // Debug prints
-    printf("Array a:\n");
-    for (size_t i = 0; i < a->size; i++) {
-        printf("%f ", a->data[i]);
-    }
-    printf("\n");
-
-    printf("Array b:\n");
-    for (size_t i = 0; i < b->size; i++) {
-        printf("%f ", b->data[i]);
-    }
-    printf("\n");
-
     // Perform addition
     error = add_arrays(&result, a, b);
     passed = (error == ARRAY_SUCCESS);
-
-    printf("Result array:\n");
-    for (size_t i = 0; i < result->size; i++) {
-        printf("%f ", result->data[i]);
-    }
-    printf("\n");
 
     // Manually broadcast 'a' to match the shape of 'b'
     ArrayType *a_broadcasted = create_array(shape_b, 2, &error);
@@ -195,11 +155,9 @@ void test_broadcast_simple() {
         a_broadcasted->data[i] = a->data[i / b->shape[1]];
     }
 
-    // Compare result with expected values and print differences
+    // Compare result with expected values
     for (size_t i = 0; i < result->size; i++) {
-        float expected = a_broadcasted->data[i] + b->data[i];
-        printf("Index %zu: Expected %f, Got %f\n", i, expected, result->data[i]);
-        passed &= (result->data[i] == expected);
+        passed &= (result->data[i] == a_broadcasted->data[i] + b->data[i]);
     }
 
     free_array(a_broadcasted);
@@ -236,28 +194,9 @@ void test_broadcast_different_dimensions() {
         b->data[i] = (float)(i + 1);  // Initialize 'b' with [1, 2, 3]
     }
 
-    // Debug prints
-    printf("Array a:\n");
-    for (size_t i = 0; i < a->size; i++) {
-        printf("%f ", a->data[i]);
-    }
-    printf("\n");
-
-    printf("Array b:\n");
-    for (size_t i = 0; i < b->size; i++) {
-        printf("%f ", b->data[i]);
-    }
-    printf("\n");
-
     // Perform addition
     error = add_arrays(&result, a, b);
     passed = (error == ARRAY_SUCCESS);
-
-    printf("Result array:\n");
-    for (size_t i = 0; i < result->size; i++) {
-        printf("%f ", result->data[i]);
-    }
-    printf("\n");
 
     // Manually broadcast 'b' to match the shape of 'a'
     ArrayType *b_broadcasted = create_array(shape_a, 3, &error);
@@ -265,11 +204,9 @@ void test_broadcast_different_dimensions() {
         b_broadcasted->data[i] = b->data[i % b->size];
     }
 
-    // Compare result with expected values and print differences
+    // Compare result with expected values
     for (size_t i = 0; i < result->size; i++) {
-        float expected = a->data[i] + b_broadcasted->data[i];
-        printf("Index %zu: Expected %f, Got %f\n", i, expected, result->data[i]);
-        passed &= (result->data[i] == expected);
+        passed &= (result->data[i] == a->data[i] + b_broadcasted->data[i]);
     }
 
     free_array(b_broadcasted);
